@@ -1,2 +1,2 @@
 const EXCEL_URL =
-    "https://res.cloudinary.com/qefnefgn/raw/upload/Gas%20tank%20%2B%20Liquid%20Oxygen%20database.xlsx";
+    "https://res.cloudinary.com/qefnefgn/raw/upload/Gas_tank_Liquid_Oxygen_database.xlsx";
