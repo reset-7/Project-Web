@@ -6,7 +6,7 @@
 // GLOBAL VARIABLES
 // ========================================
 
-let gasData = [];
+
 let oxygenData = [];
 
 let gasHistoryChart = null;
