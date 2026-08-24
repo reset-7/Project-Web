@@ -1,4 +1,5 @@
-name = "dashboard"
+name = 'project-web'
 
 main = "dashboard.js"
 
+compatibility_date = "2026-08-24"
