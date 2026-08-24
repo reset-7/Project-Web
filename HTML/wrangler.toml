@@ -1,6 +1,0 @@
-# HTML/wrangler.toml
-name = 'gas-liquid-oxygen'
-compatibility_date = "2026-08-24"
-
-[assets]
-directory = "./"
