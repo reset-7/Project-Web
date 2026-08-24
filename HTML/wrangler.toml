@@ -1,5 +1,5 @@
-name = 'project-web'
-
-main = "dashboard.js"
-
+name = "project-web"
 compatibility_date = "2026-08-24"
+
+[assets]
+directory = "./"
