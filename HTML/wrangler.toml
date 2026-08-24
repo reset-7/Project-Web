@@ -1,4 +1,4 @@
 name = "dashboard"
 
-main = "HTML/dashboard.js"
+main = "dashboard.js"
 
