@@ -1,0 +1,8 @@
+Color theshold
+
+Page Dashboard
+-last updated 
+-unit each circular bar
+-location spacing & Bold character
+-liquid o2 card sizing
+-Hero title unique background

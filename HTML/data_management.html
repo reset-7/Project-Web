@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Data Management</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- ======================================== -->
+    <!-- MAIN PAGE -->
+    <!-- ======================================== -->
+
+    <div class="page">
+
+
+        <!-- ======================================== -->
+        <!-- SIDEBAR -->
+        <!-- ======================================== -->
+
+        <aside class="sidebar">
+
+            <div class="logo">
+
+                <img
+                    src="logo bme.png"
+                    alt="logo bme"
+                    style="width:130px;height:130px"
+                >
+
+            </div>
+
+
+            <nav>
+
+                <a href="dashboard.html">
+                    Dashboard
+                </a>
+
+                <a href="history_graph.html">
+                    History Graph
+                </a>
+
+                <a href="data_management.html">
+                    Data Management
+                </a>
+
+                <a href="setting.html">
+                    Setting
+                </a>
+
+                <a href="help.html">
+                    Help
+                </a>
+                <div id="user-nav"></div>
+
+            </nav>
+
+        </aside>
+
+
+
+        <!-- ======================================== -->
+        <!-- MAIN CONTENT -->
+        <!-- ======================================== -->
+
+        <main class="main">
+
+            <!-- ======================================== -->
+            <!-- HERO -->
+            <!-- ======================================== -->
+
+            <header class="hero">
+
+                <div class="hero-title">
+
+                    <h1>
+                        Data Management: Import & Export files
+                    </h1>
+
+                </div>
+
+
+                <div class="last-updated">
+
+                    Last updated:
+                    <span id="last-updated">
+                        -
+                    </span>
+                <script src="dashboard.js"></script>
+                </div>
+
+            </header>
+
+
+
+            <!-- ======================================== -->
+            <!-- IMPORT / EXPORT SECTION -->
+            <!-- ======================================== -->
+
+            <section class="section">
+
+                <h2>
+                    Import Data
+                </h2>
+
+
+                <div class="card" style="display: flex; justify-content: center; align-items: center;" >
+
+                    <h3 style="text-align: center;">
+                        On Hold : Under Development
+                    </h3>
+
+
+                    <div class="data-buttons">
+
+
+
+                        <!-- ======================================== -->
+                        <!-- IMPORT -->
+                        <!-- ======================================== -->
+
+                        <div id="import-section" hidden>
+
+
+                            <input
+                                type="file"
+                                id="import-file"
+                                accept=".xlsx,.xls"
+                            >
+
+                            <button
+                                type="button"
+                                id="import-button"
+                                onclick="importData()"
+                            >
+                                Import Data
+                            </button>
+
+                        </div>
+ 
+
+
+
+
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ======================================== -->
+            <!-- EXPORT INFORMATION -->
+            <!-- ======================================== -->
+
+            <section class="section" id="export-section">
+
+                <h2>
+                    Export Data
+                </h2>
+
+
+                <div class="export-box">
+
+                    <div class="export-info">
+
+                        <h3>
+                            Export : Gas & Liquid Oxygen  Data
+                        </h3>
+
+
+                        <p>
+                            Download the current gas tank
+                            and liquid oxygen database.
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        id="export-button"
+                        onclick="exportData()"
+                    >
+                        ↓ Export Excel
+                    </button>
+
+                </div>
+
+            </section>
+
+
+        </main>
+
+    </div>
+
+
+
+    <!-- ======================================== -->
+    <!-- JAVASCRIPT -->
+    <!-- ======================================== -->
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <!--<script src="auth.js"></script> -->
+    <script src="config.js"></script>
+    <script src="data_management.js"></script>
+    <script src="dashboard.js"></script>
+
+
+
+</body>
+
+</html>
