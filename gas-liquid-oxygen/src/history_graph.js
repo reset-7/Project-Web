@@ -2,10 +2,6 @@
 // EXCEL FILE
 // ========================================
 
-const EXCEL_URL =
-    "https://res.cloudinary.com/qefnefgn/raw/upload/v1786354479/Gas%20tank%20%2B%20Liquid%20Oxygen%20database.xlsx";
-
-
 // ========================================
 // GLOBAL VARIABLES
 // ========================================
