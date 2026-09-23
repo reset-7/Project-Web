@@ -926,291 +926,190 @@ async function generateDOCX() {
 ===================================================== */
 
 async function generatePDF() {
+    let pages = [];
 
     try {
-
         setLoading(true);
+        showMessage("Generating PDF...", false);
 
-        showMessage(
-            "Preparing PDF...",
-            false
-        );
-
-
-        /* =========================================
-           Check required libraries
-        ========================================== */
-
-        if (
-            typeof docx === "undefined" ||
-            typeof docx.renderAsync !== "function"
-        ) {
-
-            throw new Error(
-                "DOCX preview library failed to load."
-            );
-
+        // Check libraries
+        if (typeof docx === "undefined" || typeof docx.renderAsync !== "function") {
+            throw new Error("docx-preview is not loaded.");
         }
 
-
-        if (
-            typeof html2pdf === "undefined"
-        ) {
-
-            throw new Error(
-                "PDF library failed to load."
-            );
-
+        if (typeof html2canvas === "undefined") {
+            throw new Error("html2canvas is not loaded.");
         }
 
+        if (typeof window.jspdf === "undefined") {
+            throw new Error("jsPDF is not loaded.");
+        }
 
-        /* =========================================
-           Generate modified DOCX
-        ========================================== */
+        // Create the same modified DOCX that already works
+        const result = await createModifiedDocx();
 
-        const result =
-            await createModifiedDocx();
-
-
-        /* =========================================
-           Clear previous rendering
-        ========================================== */
-
+        // Clear previous render
         pdfRenderArea.innerHTML = "";
 
+        // Make render area visible to html2canvas
+        pdfRenderArea.style.display = "block";
+        pdfRenderArea.style.visibility = "visible";
 
-        /* =========================================
-           Convert Blob
-        ========================================== */
+        // Get DOCX data
+        const arrayBuffer = await result.blob.arrayBuffer();
 
-        const arrayBuffer =
-            await result.blob.arrayBuffer();
+        console.log("Rendering DOCX...");
 
-
-        /* =========================================
-           Render DOCX
-        ========================================== */
-
+        // Render DOCX -> HTML
         await docx.renderAsync(
-
             arrayBuffer,
-
             pdfRenderArea,
-
-            undefined,
-
+            null,
             {
                 className: "docx",
-
                 inWrapper: true,
-
                 ignoreWidth: false,
-
                 ignoreHeight: false,
-
                 ignoreFonts: false,
-
                 breakPages: true,
-
                 renderHeaders: true,
-
                 renderFooters: true,
-
                 renderFootnotes: true,
-
                 renderEndnotes: true,
-
                 useBase64URL: true
             }
-
         );
 
-
-        /* =========================================
-           Check rendered document
-        ========================================== */
-
-        const pages =
-            pdfRenderArea.querySelectorAll(
-                "section.docx"
-            );
-
-
-        console.log(
-            "Rendered pages:",
-            pages.length
+        // Find generated Word pages
+        pages = Array.from(
+            pdfRenderArea.querySelectorAll("section.docx")
         );
 
+        console.log("DOCX pages found:", pages.length);
 
-        if (
-            pages.length === 0
-        ) {
-
+        if (pages.length === 0) {
             throw new Error(
-                "DOCX was generated, but no pages were rendered for PDF."
+                "DOCX was rendered, but no Word pages were found."
             );
-
         }
 
+        // Give browser time to finish layout
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        /* =========================================
-           Wait for layout
-        ========================================== */
-
-        await wait(1500);
-
-
-        /* =========================================
-           Wait for images
-        ========================================== */
-
-        const images =
-            pdfRenderArea.querySelectorAll(
-                "img"
-            );
-
+        // Wait for images
+        const images = pdfRenderArea.querySelectorAll("img");
 
         await Promise.all(
-
-            Array.from(images).map(
-                img => {
-
-                    if (
-                        img.complete
-                    ) {
-
-                        return Promise.resolve();
-
-                    }
-
-
-                    return new Promise(
-                        resolve => {
-
-                            img.onload =
-                                resolve;
-
-                            img.onerror =
-                                resolve;
-
-                        }
-                    );
-
+            Array.from(images).map(img => {
+                if (img.complete) {
+                    return Promise.resolve();
                 }
-            )
 
+                return new Promise(resolve => {
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                });
+            })
         );
 
+        console.log("Starting PDF capture...");
 
-        /* =========================================
-           Filename
-        ========================================== */
+        // Create PDF
+        const { jsPDF } = window.jspdf;
 
-        const monthName =
-            THAI_MONTHS[
-                result.month - 1
-            ];
+        const pdf = new jsPDF({
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4",
+            compress: true
+        });
 
+        // Capture each Word page separately
+        for (let i = 0; i < pages.length; i++) {
+
+            const page = pages[i];
+
+            console.log(`Capturing page ${i + 1}/${pages.length}`);
+
+            // Force correct page dimensions
+            page.style.width = "210mm";
+            page.style.minHeight = "297mm";
+            page.style.margin = "0";
+            page.style.padding = "0";
+            page.style.background = "#ffffff";
+
+            const canvas = await html2canvas(page, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: "#ffffff",
+                logging: false,
+                imageTimeout: 30000,
+                width: page.scrollWidth,
+                height: page.scrollHeight,
+                windowWidth: page.scrollWidth,
+                windowHeight: page.scrollHeight
+            });
+
+            console.log(
+                `Page ${i + 1} canvas:`,
+                canvas.width,
+                "x",
+                canvas.height
+            );
+
+            if (i > 0) {
+                pdf.addPage();
+            }
+
+            const imageData = canvas.toDataURL(
+                "image/jpeg",
+                0.98
+            );
+
+            pdf.addImage(
+                imageData,
+                "JPEG",
+                0,
+                0,
+                210,
+                297,
+                undefined,
+                "FAST"
+            );
+        }
+
+        const monthName = THAI_MONTHS[result.month - 1];
 
         const filename =
             `${OUTPUT_PREFIX}_${monthName}_${result.year + 543}.pdf`;
 
+        console.log("Saving PDF:", filename);
 
-        /* =========================================
-           PDF settings
-        ========================================== */
-
-        const pdfOptions = {
-
-            margin: 0,
-
-            filename: filename,
-
-            image: {
-
-                type: "jpeg",
-
-                quality: 0.98
-
-            },
-
-            html2canvas: {
-
-                scale: 2,
-
-                useCORS: true,
-
-                allowTaint: true,
-
-                backgroundColor: "#ffffff",
-
-                logging: true
-
-            },
-
-            jsPDF: {
-
-                unit: "mm",
-
-                format: "a4",
-
-                orientation: "portrait"
-
-            },
-
-            pagebreak: {
-
-                mode: [
-                    "css",
-                    "legacy"
-                ]
-
-            }
-
-        };
-
-
-        /* =========================================
-           Generate PDF
-        ========================================== */
-
-        await html2pdf()
-
-            .set(pdfOptions)
-
-            .from(pdfRenderArea)
-
-            .save();
-
+        pdf.save(filename);
 
         showMessage(
             `PDF downloaded: ${filename}`,
             false
         );
 
-    }
-    catch (error) {
+    } catch (error) {
 
-        console.error(
-            "PDF generation error:",
-            error
-        );
-
+        console.error("PDF ERROR:", error);
 
         showMessage(
-            `PDF error: ${error.message}`,
+            `PDF Error: ${error.message}`,
             true
         );
 
-    }
-    finally {
+    } finally {
 
+        // Clean up
         pdfRenderArea.innerHTML = "";
+        pdfRenderArea.style.display = "none";
 
         setLoading(false);
-
     }
-
 }
 
 /* =====================================================
