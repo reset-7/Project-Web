@@ -513,45 +513,29 @@ body {
    PDF RENDER AREA
 ===================================================== */
 #pdfRenderArea {
-
-    position: absolute;
-
-    left: -100000px;
-
+    position: fixed;
+    left: 0;
     top: 0;
-
     width: 210mm;
-
-    background: white;
-
+    background: #ffffff;
+    z-index: 99999;
+    pointer-events: none;
+    opacity: 1;
 }
-
 
 #pdfRenderArea .docx-wrapper {
-
-    background: white !important;
-
+    background: #ffffff !important;
     padding: 0 !important;
-
 }
-
 
 #pdfRenderArea section.docx {
-
     width: 210mm !important;
-
     min-height: 297mm !important;
-
     margin: 0 !important;
-
     padding: 0 !important;
-
-    background: white !important;
-
+    background: #ffffff !important;
     box-shadow: none !important;
-
 }
-
 
 /* =====================================================
    MOBILE
