@@ -94,7 +94,7 @@ body {
 
 .status-badge {
 
-    padding:
+    ding:
         8px 14px;
 
     border-radius:
@@ -512,54 +512,43 @@ body {
 /* =====================================================
    PDF RENDER AREA
 ===================================================== */
-
 #pdfRenderArea {
 
-    position:
-        fixed;
+    position: absolute;
 
-    left:
-        -100000px;
+    left: -100000px;
 
-    top:
-        0;
+    top: 0;
 
-    width:
-        210mm;
+    width: 210mm;
 
-    background:
-        white;
-
-    overflow:
-        visible;
+    background: white;
 
 }
 
 
 #pdfRenderArea .docx-wrapper {
 
-    background:
-        white !important;
+    background: white !important;
 
-    padding:
-        0 !important;
+    padding: 0 !important;
 
 }
 
 
 #pdfRenderArea section.docx {
 
-    width:
-        210mm !important;
+    width: 210mm !important;
 
-    min-height:
-        297mm !important;
+    min-height: 297mm !important;
 
-    margin:
-        0 !important;
+    margin: 0 !important;
 
-    box-shadow:
-        none !important;
+    padding: 0 !important;
+
+    background: white !important;
+
+    box-shadow: none !important;
 
 }
 
