@@ -929,10 +929,7 @@ async function generatePDF() {
 
     try {
 
-        setLoading(
-            true
-        );
-
+        setLoading(true);
 
         showMessage(
             "Preparing PDF...",
@@ -940,33 +937,59 @@ async function generatePDF() {
         );
 
 
-        /*
-            First create completed DOCX.
-        */
+        /* =========================================
+           Check required libraries
+        ========================================== */
+
+        if (
+            typeof docx === "undefined" ||
+            typeof docx.renderAsync !== "function"
+        ) {
+
+            throw new Error(
+                "DOCX preview library failed to load."
+            );
+
+        }
+
+
+        if (
+            typeof html2pdf === "undefined"
+        ) {
+
+            throw new Error(
+                "PDF library failed to load."
+            );
+
+        }
+
+
+        /* =========================================
+           Generate modified DOCX
+        ========================================== */
 
         const result =
             await createModifiedDocx();
 
 
-        /*
-            Clear previous rendering.
-        */
+        /* =========================================
+           Clear previous rendering
+        ========================================== */
 
-        pdfRenderArea.innerHTML =
-            "";
+        pdfRenderArea.innerHTML = "";
 
 
-        /*
-            Convert DOCX to ArrayBuffer.
-        */
+        /* =========================================
+           Convert Blob
+        ========================================== */
 
         const arrayBuffer =
             await result.blob.arrayBuffer();
 
 
-        /*
-            Render DOCX to HTML.
-        */
+        /* =========================================
+           Render DOCX
+        ========================================== */
 
         await docx.renderAsync(
 
@@ -974,58 +997,114 @@ async function generatePDF() {
 
             pdfRenderArea,
 
-            null,
+            undefined,
 
             {
+                className: "docx",
 
-                className:
-                    "docx",
+                inWrapper: true,
 
-                inWrapper:
-                    true,
+                ignoreWidth: false,
 
-                ignoreWidth:
-                    false,
+                ignoreHeight: false,
 
-                ignoreHeight:
-                    false,
+                ignoreFonts: false,
 
-                ignoreFonts:
-                    false,
+                breakPages: true,
 
-                breakPages:
-                    true,
+                renderHeaders: true,
 
-                renderHeaders:
-                    true,
+                renderFooters: true,
 
-                renderFooters:
-                    true,
+                renderFootnotes: true,
 
-                renderFootnotes:
-                    true,
+                renderEndnotes: true,
 
-                renderEndnotes:
-                    true
-
+                useBase64URL: true
             }
 
         );
 
 
-        /*
-            Give browser time
-            to finish rendering.
-        */
+        /* =========================================
+           Check rendered document
+        ========================================== */
 
-        await wait(
-            1000
+        const pages =
+            pdfRenderArea.querySelectorAll(
+                "section.docx"
+            );
+
+
+        console.log(
+            "Rendered pages:",
+            pages.length
         );
 
 
-        /*
-            Filename.
-        */
+        if (
+            pages.length === 0
+        ) {
+
+            throw new Error(
+                "DOCX was generated, but no pages were rendered for PDF."
+            );
+
+        }
+
+
+        /* =========================================
+           Wait for layout
+        ========================================== */
+
+        await wait(1500);
+
+
+        /* =========================================
+           Wait for images
+        ========================================== */
+
+        const images =
+            pdfRenderArea.querySelectorAll(
+                "img"
+            );
+
+
+        await Promise.all(
+
+            Array.from(images).map(
+                img => {
+
+                    if (
+                        img.complete
+                    ) {
+
+                        return Promise.resolve();
+
+                    }
+
+
+                    return new Promise(
+                        resolve => {
+
+                            img.onload =
+                                resolve;
+
+                            img.onerror =
+                                resolve;
+
+                        }
+                    );
+
+                }
+            )
+
+        );
+
+
+        /* =========================================
+           Filename
+        ========================================== */
 
         const monthName =
             THAI_MONTHS[
@@ -1037,54 +1116,45 @@ async function generatePDF() {
             `${OUTPUT_PREFIX}_${monthName}_${result.year + 543}.pdf`;
 
 
-        /*
-            PDF configuration.
-        */
+        /* =========================================
+           PDF settings
+        ========================================== */
 
         const pdfOptions = {
 
-            margin: [
-                0,
-                0,
-                0,
-                0
-            ],
+            margin: 0,
 
-            filename,
+            filename: filename,
 
             image: {
 
-                type:
-                    "jpeg",
+                type: "jpeg",
 
-                quality:
-                    0.98
+                quality: 0.98
 
             },
 
             html2canvas: {
 
-                scale:
-                    2,
+                scale: 2,
 
-                useCORS:
-                    true,
+                useCORS: true,
 
-                backgroundColor:
-                    "#ffffff"
+                allowTaint: true,
+
+                backgroundColor: "#ffffff",
+
+                logging: true
 
             },
 
             jsPDF: {
 
-                unit:
-                    "mm",
+                unit: "mm",
 
-                format:
-                    "a4",
+                format: "a4",
 
-                orientation:
-                    "portrait"
+                orientation: "portrait"
 
             },
 
@@ -1100,19 +1170,15 @@ async function generatePDF() {
         };
 
 
-        /*
-            Generate PDF.
-        */
+        /* =========================================
+           Generate PDF
+        ========================================== */
 
         await html2pdf()
 
-            .set(
-                pdfOptions
-            )
+            .set(pdfOptions)
 
-            .from(
-                pdfRenderArea
-            )
+            .from(pdfRenderArea)
 
             .save();
 
@@ -1123,11 +1189,10 @@ async function generatePDF() {
         );
 
     }
-    catch (
-        error
-    ) {
+    catch (error) {
 
         console.error(
+            "PDF generation error:",
             error
         );
 
@@ -1140,18 +1205,13 @@ async function generatePDF() {
     }
     finally {
 
-        pdfRenderArea.innerHTML =
-            "";
+        pdfRenderArea.innerHTML = "";
 
-
-        setLoading(
-            false
-        );
+        setLoading(false);
 
     }
 
 }
-
 
 /* =====================================================
    WAIT
