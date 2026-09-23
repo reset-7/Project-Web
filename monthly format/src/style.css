@@ -520,7 +520,7 @@ body {
     background: #ffffff;
     z-index: 99999;
     pointer-events: none;
-    opacity: 1;
+    display: none;
 }
 
 #pdfRenderArea .docx-wrapper {
