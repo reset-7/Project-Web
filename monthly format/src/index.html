@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Medical Air Daily Check Report
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+    <main class="container">
+
+        <!-- =========================================
+             HEADER
+        ========================================== -->
+
+        <header class="header">
+
+            <div>
+
+                <h1>
+                    Medical Air Daily Check
+                </h1>
+
+                <p>
+                    Monthly inspection report generator
+                </p>
+
+            </div>
+
+
+            <div
+                id="templateStatus"
+                class="status-badge"
+            >
+                Checking template...
+            </div>
+
+        </header>
+
+
+
+        <!-- =========================================
+             SETTINGS
+        ========================================== -->
+
+        <section class="card">
+
+            <h2>
+                Report Settings
+            </h2>
+
+
+            <div class="form-grid">
+
+                <!-- YEAR -->
+
+                <div class="form-group">
+
+                    <label for="year">
+                        Year
+                    </label>
+
+                    <input
+                        type="number"
+                        id="year"
+                        min="2000"
+                        max="2100"
+                    >
+
+                </div>
+
+
+                <!-- MONTH -->
+
+                <div class="form-group">
+
+                    <label for="month">
+                        Month
+                    </label>
+
+                    <select id="month">
+                    </select>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 PREVIEW
+            ====================================== -->
+
+            <div class="preview">
+
+                <div class="preview-item">
+
+                    <span>
+                        Thai Month
+                    </span>
+
+                    <strong id="thaiMonth">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="preview-item">
+
+                    <span>
+                        Thai Year
+                    </span>
+
+                    <strong id="thaiYear">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="preview-item">
+
+                    <span>
+                        Days
+                    </span>
+
+                    <strong id="daysInMonth">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="preview-item">
+
+                    <span>
+                        Sundays
+                    </span>
+
+                    <strong id="sundays">
+                        -
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 BUTTONS
+            ====================================== -->
+
+            <div class="button-group">
+
+                <button
+                    id="generateDocxButton"
+                    class="generate-button"
+                >
+                    Download DOCX
+                </button>
+
+
+                <button
+                    id="generatePdfButton"
+                    class="generate-button pdf-button"
+                >
+                    Download PDF
+                </button>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 PROGRESS
+            ====================================== -->
+
+            <div
+                id="progress"
+                class="progress hidden"
+            >
+
+                <div class="spinner"></div>
+
+                <span>
+                    Generating document...
+                </span>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 MESSAGE
+            ====================================== -->
+
+            <div
+                id="message"
+                class="message hidden"
+            >
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================================
+             INFORMATION
+        ========================================== -->
+
+        <section class="card information">
+
+            <h2>
+                How it works
+            </h2>
+
+
+            <ol>
+
+                <li>
+                    Select the year.
+                </li>
+
+                <li>
+                    Select the month.
+                </li>
+
+                <li>
+                    The system calculates the number of days.
+                </li>
+
+                <li>
+                    Sundays are automatically marked with "-".
+                </li>
+
+                <li>
+                    Days outside the selected month are left blank.
+                </li>
+
+                <li>
+                    The Word template is modified in your browser.
+                </li>
+
+                <li>
+                    Download the completed DOCX or PDF.
+                </li>
+
+            </ol>
+
+
+            <div class="privacy">
+
+                No generated documents are uploaded
+                or stored by this application.
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+
+    <!-- =============================================
+         TEMPORARY PDF RENDER AREA
+    ============================================== -->
+
+    <div id="pdfRenderArea">
+    </div>
+
+
+
+    <!-- =============================================
+         LIBRARIES
+    ============================================== -->
+
+    <!-- JSZip -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js">
+    </script>
+
+
+    <!-- DOCX Preview -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.6/dist/docx-preview.min.js">
+    </script>
+
+
+    <!-- HTML to PDF -->
+
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
+    </script>
+
+
+
+    <!-- YOUR JAVASCRIPT -->
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>
