@@ -636,163 +636,81 @@ function replacePlaceholders(
 }
 
 
-/* =====================================================
-   CREATE MODIFIED DOCX
-===================================================== */
+function setDocumentLandscape(xml) {
+    const landscapePageSize =
+        '<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>';
+
+    if (/<w:pgSz\b[^>]*\/>/.test(xml)) {
+        return xml.replace(
+            /<w:pgSz\b[^>]*\/>/,
+            landscapePageSize
+        );
+    }
+
+    // Handle a page-size element with an explicit closing tag
+    if (/<w:pgSz\b[^>]*>[\s\S]*?<\/w:pgSz>/.test(xml)) {
+        return xml.replace(
+            /<w:pgSz\b[^>]*>[\s\S]*?<\/w:pgSz>/,
+            landscapePageSize
+        );
+    }
+
+    console.warn("Could not find w:pgSz in document.xml");
+    return xml;
+}
+
 
 async function createModifiedDocx() {
+    const year = Number(yearInput.value);
+    const month = Number(monthInput.value);
 
-    const year =
-        Number(
-            yearInput.value
-        );
-
-
-    const month =
-        Number(
-            monthInput.value
-        );
-
-
-    /*
-        Validate year.
-    */
-
-    if (
-        !year ||
-        year < 2000 ||
-        year > 2100
-    ) {
-
-        throw new Error(
-            "Please enter a valid year."
-        );
-
+    if (!year || year < 2000 || year > 2100) {
+        throw new Error("Please enter a valid year.");
     }
 
-
-    /*
-        Validate month.
-    */
-
-    if (
-        month < 1 ||
-        month > 12
-    ) {
-
-        throw new Error(
-            "Please select a valid month."
-        );
-
+    if (month < 1 || month > 12) {
+        throw new Error("Please select a valid month.");
     }
 
+    const replacements = createReplacementData(year, month);
 
-    /*
-        Create replacement values.
-    */
+    // Download and open the original DOCX template
+    const templateBuffer = await fetchTemplate();
+    const zip = await JSZip.loadAsync(templateBuffer);
 
-    const replacements =
-        createReplacementData(
-            year,
-            month
-        );
+    const documentFile = zip.file("word/document.xml");
 
-
-    /*
-        Download template.
-    */
-
-    const templateBuffer =
-        await fetchTemplate();
-
-
-    /*
-        Open DOCX ZIP.
-    */
-
-    const zip =
-        await JSZip.loadAsync(
-            templateBuffer
-        );
-
-
-    /*
-        Main Word XML.
-    */
-
-    const documentFile =
-        zip.file(
-            "word/document.xml"
-        );
-
-
-    if (
-        !documentFile
-    ) {
-
-        throw new Error(
-            "word/document.xml was not found."
-        );
-
+    if (!documentFile) {
+        throw new Error("word/document.xml was not found.");
     }
 
+    // Read Word XML
+    const documentXml = await documentFile.async("string");
 
-    /*
-        Read XML.
-    */
-
-    const documentXml =
-        await documentFile.async(
-            "string"
-        );
-
-
-    /*
-        Replace placeholders.
-    */
-
-    const modifiedXml =
-        replacePlaceholders(
-            documentXml,
-            replacements
-        );
-
-
-    /*
-        Save modified XML.
-    */
-
-    zip.file(
-        "word/document.xml",
-        modifiedXml
+    // Replace month, year and day placeholders
+    let modifiedXml = replacePlaceholders(
+        documentXml,
+        replacements
     );
 
+    // Apply A4 landscape orientation
+    modifiedXml = setDocumentLandscape(modifiedXml);
 
-    /*
-        Generate DOCX.
-    */
+    // Save the modified Word XML
+    zip.file("word/document.xml", modifiedXml);
 
-    const blob =
-        await zip.generateAsync(
-            {
-                type: "blob",
-
-                mimeType:
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            }
-        );
-
+    // Generate the updated DOCX
+    const blob = await zip.generateAsync({
+        type: "blob",
+        mimeType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    });
 
     return {
-
         blob,
-
         year,
-
         month
-
     };
-
 }
 
 
