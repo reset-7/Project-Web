@@ -1,0 +1,6 @@
+Flask>=3.0,<4
+cloudinary>=1.40,<2
+python-dotenv>=1.0,<2
+requests>=2.31,<3
+pypdf>=5.0,<7
+pywin32>=306; platform_system == "Windows"
