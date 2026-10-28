@@ -839,48 +839,34 @@ async function generateDOCX() {
 }
 
 
-/* =====================================================
-   GENERATE PDF
-===================================================== */
-
 
 async function generatePDF() {
-    let pages = [];
+    let pdfRenderArea;
 
     try {
         setLoading(true);
-        showMessage("Generating landscape PDF...", false);
 
-        // Check required libraries
-        if (
-            typeof docx === "undefined" ||
-            typeof docx.renderAsync !== "function"
-        ) {
-            throw new Error("docx-preview is not loaded.");
+        // Create the modified DOCX for the selected year and month
+        const { blob, year, month } = await createModifiedDocx();
+
+        // Prepare the temporary area for rendering
+        pdfRenderArea = document.getElementById("pdfRenderArea");
+
+        if (!pdfRenderArea) {
+            throw new Error('Element with id "pdfRenderArea" was not found.');
         }
-
-        if (typeof html2canvas === "undefined") {
-            throw new Error("html2canvas is not loaded.");
-        }
-
-        if (typeof window.jspdf === "undefined") {
-            throw new Error("jsPDF is not loaded.");
-        }
-
-        // Create the modified DOCX
-        // Invalid day columns should be removed inside
-        // createModifiedDocx() before this step.
-        const result = await createModifiedDocx();
 
         pdfRenderArea.innerHTML = "";
         pdfRenderArea.style.display = "block";
         pdfRenderArea.style.visibility = "visible";
+        pdfRenderArea.style.position = "absolute";
+        pdfRenderArea.style.left = "-10000px";
+        pdfRenderArea.style.top = "0";
         pdfRenderArea.style.background = "#ffffff";
 
-        const arrayBuffer = await result.blob.arrayBuffer();
+        // Render the DOCX
+        const arrayBuffer = await blob.arrayBuffer();
 
-     
-        // Render DOCX to HTML
         await docx.renderAsync(
             arrayBuffer,
             pdfRenderArea,
@@ -890,89 +876,51 @@ async function generatePDF() {
                 inWrapper: true,
                 ignoreWidth: false,
                 ignoreHeight: false,
-                ignoreFonts: false,
                 breakPages: true,
                 renderHeaders: true,
                 renderFooters: true,
-                renderFootnotes: true,
-                renderEndnotes: true,
-                useBase64URL: true
+                renderFootnotes: true
             }
         );
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Set A4 landscape dimensions in CSS pixels at 96 DPI
+        const pageWidth = 1122;
+        const pageHeight = 794;
 
-        pages = Array.from(
-            pdfRenderArea.querySelectorAll("section.docx")
+        const pages = pdfRenderArea.querySelectorAll(
+            ".docx-wrapper > section.docx, section.docx"
         );
 
-        if (pages.length === 0) {
-            throw new Error("No rendered Word pages were found.");
+        if (!pages.length) {
+            throw new Error("No DOCX pages were rendered.");
         }
 
-        // A4 landscape dimensions at approximately 96 DPI
-        const pageWidthPx = 1122;
-        const pageHeightPx = 794;
+        // Prepare each page and its tables
+        pages.forEach((page) => {
+            page.style.width = `${pageWidth}px`;
+            page.style.minWidth = `${pageWidth}px`;
+            page.style.maxWidth = `${pageWidth}px`;
+            page.style.height = `${pageHeight}px`;
+            page.style.minHeight = `${pageHeight}px`;
+            page.style.maxHeight = `${pageHeight}px`;
+            page.style.margin = "0";
+            page.style.padding = "0";
+            page.style.boxSizing = "border-box";
+            page.style.overflow = "hidden";
+            page.style.background = "#ffffff";
 
-        // Configure each rendered Word page
-        for (const page of pages) {
-            page.style.setProperty(
-                "width", `${pageWidthPx}px`, "important"
-            );
-            page.style.setProperty(
-                "min-width", `${pageWidthPx}px`, "important"
-            );
-            page.style.setProperty(
-                "height", `${pageHeightPx}px`, "important"
-            );
-            page.style.setProperty(
-                "min-height", `${pageHeightPx}px`, "important"
-            );
-            page.style.setProperty(
-                "max-width", "none", "important"
-            );
-            page.style.setProperty(
-                "margin", "0", "important"
-            );
-            page.style.setProperty(
-                "padding", "0", "important"
-            );
-            page.style.setProperty(
-                "box-sizing", "border-box", "important"
-            );
-            page.style.setProperty(
-                "background", "#ffffff", "important"
-            );
-
-            // Expand tables to the available page width
-            page.querySelectorAll("table").forEach(table => {
-                table.style.setProperty(
-                    "width", "100%", "important"
-                );
-                table.style.setProperty(
-                    "max-width", "100%", "important"
-                );
-                table.style.setProperty(
-                    "box-sizing", "border-box", "important"
-                );
+            page.querySelectorAll("table").forEach((table) => {
+                table.style.width = "100%";
+                table.style.maxWidth = "100%";
+                table.style.tableLayout = "fixed";
+                table.style.borderCollapse = "collapse";
+                table.style.boxSizing = "border-box";
             });
-        }
+        });
 
-        // Wait for images
-        await Promise.all(
-            Array.from(pdfRenderArea.querySelectorAll("img")).map(img => {
-                if (img.complete) {
-                    return Promise.resolve();
-                }
+        // Allow the browser to finish layout before capturing
+        await new Promise((resolve) => requestAnimationFrame(resolve));
 
-                return new Promise(resolve => {
-                    img.onload = resolve;
-                    img.onerror = resolve;
-                });
-            })
-        );
-
-        // Create A4 landscape PDF
         const { jsPDF } = window.jspdf;
 
         const pdf = new jsPDF({
@@ -985,29 +933,27 @@ async function generatePDF() {
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
 
-            console.log(
-                `Capturing page ${i + 1}/${pages.length}`
-            );
-
             const canvas = await html2canvas(page, {
                 scale: 2,
                 useCORS: true,
-                allowTaint: true,
                 backgroundColor: "#ffffff",
                 logging: false,
-                imageTimeout: 30000,
-                width: pageWidthPx,
-                height: pageHeightPx,
-                windowWidth: pageWidthPx,
-                windowHeight: pageHeightPx
+                width: pageWidth,
+                height: pageHeight,
+                windowWidth: pageWidth,
+                windowHeight: pageHeight,
+                scrollX: 0,
+                scrollY: 0
             });
+
+            const imageData = canvas.toDataURL("image/jpeg", 0.95);
 
             if (i > 0) {
                 pdf.addPage("a4", "landscape");
             }
 
             pdf.addImage(
-                canvas.toDataURL("image/jpeg", 0.98),
+                imageData,
                 "JPEG",
                 0,
                 0,
@@ -1018,14 +964,34 @@ async function generatePDF() {
             );
         }
 
-        const monthName = THAI_MONTHS[result.month - 1];
-
-        const filename =
-            `${OUTPUT_PREFIX}_${monthName}_${result.year + 543}.pdf`;
+        // Download the PDF
+        const filename = `daily-checklist-${year}-${String(month).padStart(2, "0")}.pdf`;
 
         pdf.save(filename);
 
-        showMessage(`PDF downloaded: ${filename}`, false);
+        showMessage(
+            `Landscape PDF downloaded: ${filename}`,
+            false
+        );
+
+    } catch (error) {
+        console.error("PDF ERROR:", error);
+
+        showMessage(
+            `PDF Error: ${error.message || error}`,
+            true
+        );
+
+    } finally {
+        if (pdfRenderArea) {
+            pdfRenderArea.innerHTML = "";
+            pdfRenderArea.style.display = "none";
+            pdfRenderArea.style.visibility = "visible";
+        }
+
+        setLoading(false);
+    }
+}
 
 /* =====================================================
    WAIT
