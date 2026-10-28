@@ -879,6 +879,7 @@ async function generatePDF() {
 
         const arrayBuffer = await result.blob.arrayBuffer();
 
+     
         // Render DOCX to HTML
         await docx.renderAsync(
             arrayBuffer,
@@ -899,7 +900,6 @@ async function generatePDF() {
             }
         );
 
-        // Wait for rendering and layout
         await new Promise(resolve => setTimeout(resolve, 500));
 
         pages = Array.from(
@@ -907,18 +907,60 @@ async function generatePDF() {
         );
 
         if (pages.length === 0) {
-            throw new Error(
-                "DOCX was rendered, but no Word pages were found."
-            );
+            throw new Error("No rendered Word pages were found.");
         }
 
-        // Wait for images to load
-        const images = Array.from(
-            pdfRenderArea.querySelectorAll("img")
-        );
+        // A4 landscape dimensions at approximately 96 DPI
+        const pageWidthPx = 1122;
+        const pageHeightPx = 794;
 
+        // Configure each rendered Word page
+        for (const page of pages) {
+            page.style.setProperty(
+                "width", `${pageWidthPx}px`, "important"
+            );
+            page.style.setProperty(
+                "min-width", `${pageWidthPx}px`, "important"
+            );
+            page.style.setProperty(
+                "height", `${pageHeightPx}px`, "important"
+            );
+            page.style.setProperty(
+                "min-height", `${pageHeightPx}px`, "important"
+            );
+            page.style.setProperty(
+                "max-width", "none", "important"
+            );
+            page.style.setProperty(
+                "margin", "0", "important"
+            );
+            page.style.setProperty(
+                "padding", "0", "important"
+            );
+            page.style.setProperty(
+                "box-sizing", "border-box", "important"
+            );
+            page.style.setProperty(
+                "background", "#ffffff", "important"
+            );
+
+            // Expand tables to the available page width
+            page.querySelectorAll("table").forEach(table => {
+                table.style.setProperty(
+                    "width", "100%", "important"
+                );
+                table.style.setProperty(
+                    "max-width", "100%", "important"
+                );
+                table.style.setProperty(
+                    "box-sizing", "border-box", "important"
+                );
+            });
+        }
+
+        // Wait for images
         await Promise.all(
-            images.map(img => {
+            Array.from(pdfRenderArea.querySelectorAll("img")).map(img => {
                 if (img.complete) {
                     return Promise.resolve();
                 }
@@ -930,7 +972,7 @@ async function generatePDF() {
             })
         );
 
-        // Create A4 LANDSCAPE PDF
+        // Create A4 landscape PDF
         const { jsPDF } = window.jspdf;
 
         const pdf = new jsPDF({
@@ -940,22 +982,12 @@ async function generatePDF() {
             compress: true
         });
 
-        const pageWidth = 297;
-        const pageHeight = 210;
-
-        // Capture every rendered Word page
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
 
             console.log(
                 `Capturing page ${i + 1}/${pages.length}`
             );
-
-            // Do not force portrait dimensions.
-            // Keep the rendered Word page proportions.
-            page.style.margin = "0";
-            page.style.background = "#ffffff";
-            page.style.boxSizing = "border-box";
 
             const canvas = await html2canvas(page, {
                 scale: 2,
@@ -964,47 +996,23 @@ async function generatePDF() {
                 backgroundColor: "#ffffff",
                 logging: false,
                 imageTimeout: 30000,
-                width: page.scrollWidth,
-                height: page.scrollHeight,
-                windowWidth: Math.max(
-                    document.documentElement.clientWidth,
-                    page.scrollWidth
-                ),
-                windowHeight: Math.max(
-                    document.documentElement.clientHeight,
-                    page.scrollHeight
-                )
+                width: pageWidthPx,
+                height: pageHeightPx,
+                windowWidth: pageWidthPx,
+                windowHeight: pageHeightPx
             });
 
             if (i > 0) {
                 pdf.addPage("a4", "landscape");
             }
 
-            // Fit the complete rendered page inside landscape A4
-            // while preserving its aspect ratio.
-            const scale = Math.min(
-                pageWidth / canvas.width,
-                pageHeight / canvas.height
-            );
-
-            const imageWidth = canvas.width * scale;
-            const imageHeight = canvas.height * scale;
-
-            const x = (pageWidth - imageWidth) / 2;
-            const y = (pageHeight - imageHeight) / 2;
-
-            const imageData = canvas.toDataURL(
-                "image/jpeg",
-                0.98
-            );
-
             pdf.addImage(
-                imageData,
+                canvas.toDataURL("image/jpeg", 0.98),
                 "JPEG",
-                x,
-                y,
-                imageWidth,
-                imageHeight,
+                0,
+                0,
+                297,
+                210,
                 undefined,
                 "FAST"
             );
@@ -1017,26 +1025,7 @@ async function generatePDF() {
 
         pdf.save(filename);
 
-        showMessage(
-            `Landscape PDF downloaded: ${filename}`,
-            false
-        );
-
-    } catch (error) {
-        console.error("PDF ERROR:", error);
-
-        showMessage(
-            `PDF Error: ${error.message}`,
-            true
-        );
-
-    } finally {
-        pdfRenderArea.innerHTML = "";
-        pdfRenderArea.style.display = "none";
-
-        setLoading(false);
-    }
-}
+        showMessage(`PDF downloaded: ${filename}`, false);
 
 /* =====================================================
    WAIT
