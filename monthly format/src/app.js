@@ -925,15 +925,19 @@ async function generateDOCX() {
    GENERATE PDF
 ===================================================== */
 
+
 async function generatePDF() {
     let pages = [];
 
     try {
         setLoading(true);
-        showMessage("Generating PDF...", false);
+        showMessage("Generating landscape PDF...", false);
 
-        // Check libraries
-        if (typeof docx === "undefined" || typeof docx.renderAsync !== "function") {
+        // Check required libraries
+        if (
+            typeof docx === "undefined" ||
+            typeof docx.renderAsync !== "function"
+        ) {
             throw new Error("docx-preview is not loaded.");
         }
 
@@ -945,22 +949,19 @@ async function generatePDF() {
             throw new Error("jsPDF is not loaded.");
         }
 
-        // Create the same modified DOCX that already works
+        // Create the modified DOCX
+        // Invalid day columns should be removed inside
+        // createModifiedDocx() before this step.
         const result = await createModifiedDocx();
 
-        // Clear previous render
         pdfRenderArea.innerHTML = "";
-
-        // Make render area visible to html2canvas
         pdfRenderArea.style.display = "block";
         pdfRenderArea.style.visibility = "visible";
+        pdfRenderArea.style.background = "#ffffff";
 
-        // Get DOCX data
         const arrayBuffer = await result.blob.arrayBuffer();
 
-        console.log("Rendering DOCX...");
-
-        // Render DOCX -> HTML
+        // Render DOCX to HTML
         await docx.renderAsync(
             arrayBuffer,
             pdfRenderArea,
@@ -980,12 +981,12 @@ async function generatePDF() {
             }
         );
 
-        // Find generated Word pages
+        // Wait for rendering and layout
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         pages = Array.from(
             pdfRenderArea.querySelectorAll("section.docx")
         );
-
-        console.log("DOCX pages found:", pages.length);
 
         if (pages.length === 0) {
             throw new Error(
@@ -993,14 +994,13 @@ async function generatePDF() {
             );
         }
 
-        // Give browser time to finish layout
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Wait for images
-        const images = pdfRenderArea.querySelectorAll("img");
+        // Wait for images to load
+        const images = Array.from(
+            pdfRenderArea.querySelectorAll("img")
+        );
 
         await Promise.all(
-            Array.from(images).map(img => {
+            images.map(img => {
                 if (img.complete) {
                     return Promise.resolve();
                 }
@@ -1012,31 +1012,32 @@ async function generatePDF() {
             })
         );
 
-        console.log("Starting PDF capture...");
-
-        // Create PDF
+        // Create A4 LANDSCAPE PDF
         const { jsPDF } = window.jspdf;
 
         const pdf = new jsPDF({
-            orientation: "portrait",
+            orientation: "landscape",
             unit: "mm",
             format: "a4",
             compress: true
         });
 
-        // Capture each Word page separately
-        for (let i = 0; i < pages.length; i++) {
+        const pageWidth = 297;
+        const pageHeight = 210;
 
+        // Capture every rendered Word page
+        for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
 
-            console.log(`Capturing page ${i + 1}/${pages.length}`);
+            console.log(
+                `Capturing page ${i + 1}/${pages.length}`
+            );
 
-            // Force correct page dimensions
-            page.style.width = "210mm";
-            page.style.minHeight = "297mm";
+            // Do not force portrait dimensions.
+            // Keep the rendered Word page proportions.
             page.style.margin = "0";
-            page.style.padding = "0";
             page.style.background = "#ffffff";
+            page.style.boxSizing = "border-box";
 
             const canvas = await html2canvas(page, {
                 scale: 2,
@@ -1047,20 +1048,32 @@ async function generatePDF() {
                 imageTimeout: 30000,
                 width: page.scrollWidth,
                 height: page.scrollHeight,
-                windowWidth: page.scrollWidth,
-                windowHeight: page.scrollHeight
+                windowWidth: Math.max(
+                    document.documentElement.clientWidth,
+                    page.scrollWidth
+                ),
+                windowHeight: Math.max(
+                    document.documentElement.clientHeight,
+                    page.scrollHeight
+                )
             });
 
-            console.log(
-                `Page ${i + 1} canvas:`,
-                canvas.width,
-                "x",
-                canvas.height
+            if (i > 0) {
+                pdf.addPage("a4", "landscape");
+            }
+
+            // Fit the complete rendered page inside landscape A4
+            // while preserving its aspect ratio.
+            const scale = Math.min(
+                pageWidth / canvas.width,
+                pageHeight / canvas.height
             );
 
-            if (i > 0) {
-                pdf.addPage();
-            }
+            const imageWidth = canvas.width * scale;
+            const imageHeight = canvas.height * scale;
+
+            const x = (pageWidth - imageWidth) / 2;
+            const y = (pageHeight - imageHeight) / 2;
 
             const imageData = canvas.toDataURL(
                 "image/jpeg",
@@ -1070,10 +1083,10 @@ async function generatePDF() {
             pdf.addImage(
                 imageData,
                 "JPEG",
-                0,
-                0,
-                210,
-                297,
+                x,
+                y,
+                imageWidth,
+                imageHeight,
                 undefined,
                 "FAST"
             );
@@ -1084,17 +1097,14 @@ async function generatePDF() {
         const filename =
             `${OUTPUT_PREFIX}_${monthName}_${result.year + 543}.pdf`;
 
-        console.log("Saving PDF:", filename);
-
         pdf.save(filename);
 
         showMessage(
-            `PDF downloaded: ${filename}`,
+            `Landscape PDF downloaded: ${filename}`,
             false
         );
 
     } catch (error) {
-
         console.error("PDF ERROR:", error);
 
         showMessage(
@@ -1103,8 +1113,6 @@ async function generatePDF() {
         );
 
     } finally {
-
-        // Clean up
         pdfRenderArea.innerHTML = "";
         pdfRenderArea.style.display = "none";
 
